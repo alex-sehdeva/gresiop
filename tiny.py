@@ -1,23 +1,13 @@
-# Minimal "builder" kernel in ~250 lines
-# (G, R, E, S, IO, P): Graph, Rules, Evaluator, Search, IO(SVG), Provenance
+# Full self-contained Builder → Builder-Builder v0 demo
+# Includes kernel (G, R, E, S, IO, P) and meta-learning (provenance mining + synthesized rules)
 #
-# Toy domain: build a rod by composing segments to reach a target length
-# while keeping stress under a limit given a load. Rules modify the graph;
-# evaluator computes metrics; search picks the next rewrite greedily with
-# a small beam. Provenance keeps full steps.
-#
-# Files produced:
-# - /mnt/data/rod.svg               (simple drawing of the best design)
-# - /mnt/data/provenance.txt        (human-readable provenance log)
-# - /mnt/data/best_design.json      (graph JSON of the best design)
-#
-# You can rerun/modify the parameters at the bottom.
+# Outputs:
+# - ./data/rod.svg, ./data/provenance.txt, ./data/best_design.json   (baseline)
+# - ./data/rod_v2.svg, ./data/provenance_v2.txt, ./data/best_design_v2.json, ./data/meta_report.txt (meta)
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Tuple, Callable, Optional
-import json
-import math
-import random
+from typing import Dict, Any, List, Tuple, Callable
+import json, random
 
 # -------------------------------
 # G: Very small typed-graph store
@@ -51,18 +41,16 @@ class Graph:
 # ----------------------------------------
 
 def export_svg_rod(g: Graph, path: str):
-    # Layout: draw segments in a row from x=0
     segments = []
     for nid in g.find("Segment"):
         p = g.nodes[nid]["props"]
-        segments.append((nid, p["length"], p["thickness"], p["material"]))
-    # sort for stable layout (by id)
+        segments.append((nid, float(p["length"]), float(p["thickness"]), p["material"]))
     segments.sort(key=lambda t: t[0])
     x = 10
     y = 40
-    hscale = 80  # length to pixels
-    vscale = 12  # thickness to pixels
-    width = 40 + int(sum(s[1] for s in segments) * hscale)
+    hscale = 80
+    vscale = 12
+    width = 40 + int(sum(s[1] for s in segments) * hscale) + 10 * len(segments)
     height = 120
 
     def mat_color(m):
@@ -89,18 +77,17 @@ def export_svg_rod(g: Graph, path: str):
 # E: Evaluator for the rod toy domain
 # -----------------------------------
 
-DENSITY = {"aluminum": 1.0, "steel": 2.6}   # relative units
-STRENGTH = {"aluminum": 1.0, "steel": 2.2}  # relative tensile capacity per thickness unit
+DENSITY = {"aluminum": 1.0, "steel": 2.6}
+STRENGTH = {"aluminum": 1.0, "steel": 2.2}
 
 @dataclass
 class EvalParams:
-    load: float = 10.0          # external load (arbitrary units)
-    target_length: float = 4.0   # required minimum total length
-    stress_limit: float = 1.0    # maximum allowed stress
+    load: float = 10.0
+    target_length: float = 4.0
+    stress_limit: float = 1.0
 
 def evaluate(g: Graph, ep: EvalParams) -> Dict[str, Any]:
     length = 0.0
-    area = 0.0
     weight = 0.0
     strength_scale = 0.0
     for nid in g.find("Segment"):
@@ -109,25 +96,14 @@ def evaluate(g: Graph, ep: EvalParams) -> Dict[str, Any]:
         T = float(p["thickness"])
         M = p["material"]
         length += L
-        area += T
         weight += L * T * DENSITY[M]
         strength_scale += T * STRENGTH[M]
 
     stress = ep.load / max(strength_scale, 1e-6)
     feasible = (length >= ep.target_length) and (stress <= ep.stress_limit)
-
-    # Cost: prefer feasible; then lower (weight + stress) and fewer segments
     nseg = len(g.find("Segment"))
     cost = (0 if feasible else 1000) + weight + 0.5 * stress + 0.05 * nseg
-
-    return {
-        "length": length,
-        "stress": stress,
-        "weight": weight,
-        "segments": nseg,
-        "feasible": feasible,
-        "cost": cost
-    }
+    return {"length": length, "stress": stress, "weight": weight, "segments": nseg, "feasible": feasible, "cost": cost}
 
 # -------------------
 # R: Rewrite machinery
@@ -181,12 +157,10 @@ def rule_swap_material() -> RuleFn:
     return apply
 
 def rule_remove_shortest(min_keep=1) -> RuleFn:
-    """Remove the shortest segment if > min_keep remain (cheap simplifier)."""
     def apply(g: Graph) -> List[RuleResult]:
         segs = g.find("Segment")
         if len(segs) <= min_keep:
             return []
-        # find shortest
         shortest = min(segs, key=lambda nid: g.nodes[nid]["props"]["length"])
         ng = g.clone()
         del ng.nodes[shortest]
@@ -200,17 +174,15 @@ def rule_remove_shortest(min_keep=1) -> RuleFn:
 
 @dataclass
 class SearchConfig:
-    iters: int = 4000
-    beam_width: int = 60
-    random_perturb: float = 0.05  # tiny jitter to break ties
+    iters: int = 40
+    beam_width: int = 6
+    random_perturb: float = 0.05
 
 @dataclass
 class Provenance:
     steps: List[Dict[str, Any]] = field(default_factory=list)
-
     def log(self, desc: str, metrics: Dict[str, Any]):
         self.steps.append({"rule": desc, "metrics": dict(metrics)})
-
     def dump(self, path: str):
         with open(path, "w") as f:
             for i, s in enumerate(self.steps):
@@ -218,20 +190,15 @@ class Provenance:
                 f.write(json.dumps(s["metrics"], indent=2) + "\n\n")
 
 def search(initial: Graph, rules: List[RuleFn], ep: EvalParams, sc: SearchConfig):
-    # Beam holds (cost, graph, metrics, last_rule)
     def score(m): return m["cost"] + sc.random_perturb * random.random()
-
     beam: List[Tuple[float, Graph, Dict[str, Any], str]] = []
     m0 = evaluate(initial, ep)
     beam.append((score(m0), initial, m0, "init"))
     prov = Provenance()
     prov.log("init", m0)
-
     best = (m0["cost"], initial, m0, "init")
-
     for _ in range(sc.iters):
         candidates: List[Tuple[float, Graph, Dict[str, Any], str]] = []
-        # expand current beam
         for _, g, _, _ in beam:
             for r in rules:
                 for rr in r(g):
@@ -240,18 +207,14 @@ def search(initial: Graph, rules: List[RuleFn], ep: EvalParams, sc: SearchConfig
                     candidates.append((s, rr.new_graph, m, rr.desc))
         if not candidates:
             break
-        # prune
         candidates.sort(key=lambda t: t[0])
         beam = candidates[:sc.beam_width]
-        # update best and provenance with the top pick
         b0 = beam[0]
         if b0[2]["cost"] < best[2]["cost"]:
             best = b0
         prov.log(b0[3], b0[2])
-        # early stop if feasible and cost not improving much
         if best[2]["feasible"] and best[2]["cost"] <= 0.9 + 1e-6:
             break
-
     return best[1], best[2], prov
 
 # ------------------------------
@@ -261,39 +224,140 @@ def search(initial: Graph, rules: List[RuleFn], ep: EvalParams, sc: SearchConfig
 def make_initial_rod() -> Graph:
     g = Graph()
     g.add_node("rod", "Assembly", name="rod-1")
-    # start with one small aluminum segment
     g.add_node("seg1", "Segment", length=1.0, thickness=0.8, material="aluminum")
     g.add_edge("rod", "has", "seg1")
     return g
 
 # ------------------------------
-# Run a demo search and emit files
+# Meta: rules as graph descriptors & mining
 # ------------------------------
 
-if __name__ == "__main__":
-    random.seed(7)
-    initial = make_initial_rod()
+def rule_registry_to_graph(g: Graph, rule_names: List[str]):
+    if "ruleset" not in g.nodes:
+        g.add_node("ruleset", "RuleSet", name="default")
+    for rn in rule_names:
+        rid = f"rule::{rn}"
+        if rid not in g.nodes:
+            g.add_node(rid, "Rule", name=rn)
+            g.add_edge("ruleset", "has_rule", rid)
 
-    ep = EvalParams(load=1.0, target_length=1.0, stress_limit=1.0)
-    sc = SearchConfig(iters=450, beam_width=6)
+def mine_provenance(prov: Provenance):
+    rows = []
+    last_cost = None
+    for s in prov.steps:
+        rule = s["rule"]
+        cost = s["metrics"]["cost"]
+        feas = s["metrics"]["feasible"]
+        delta = 0.0 if last_cost is None else last_cost - cost
+        rows.append({"rule": rule, "delta": delta, "feasible": feas, "cost": cost})
+        last_cost = cost
+    def base_name(r): return r.split("(")[0] if "(" in r else r
+    agg = {}
+    for r in rows:
+        bn = base_name(r["rule"])
+        a = agg.setdefault(bn, {"count": 0, "total_delta": 0.0, "pos": 0})
+        a["count"] += 1
+        a["total_delta"] += r["delta"]
+        a["pos"] += int(r["delta"] > 0)
+    stats_by_rule = []
+    for bn, a in agg.items():
+        pos_rate = a["pos"] / max(1, a["count"])
+        mean_delta = a["total_delta"] / max(1, a["count"])
+        stats_by_rule.append({"rule": bn, "count": a["count"], "mean_delta": mean_delta, "pos_rate": pos_rate, "total_delta": a["total_delta"]})
+    stats_by_rule.sort(key=lambda r: (r["total_delta"], r["mean_delta"], r["pos_rate"]), reverse=True)
+    return rows, stats_by_rule
 
-    # Rule portfolio (mix exploration & simplification)
-    rules = [
-        rule_add_segment(0.8, 0.8, "aluminum"),
-        rule_increase_length(0.6),
-        rule_increase_thickness(0.3),
-        rule_swap_material(),
-        rule_remove_shortest(min_keep=1),
-    ]
+# --- Meta-synthesized rules ---
 
-    best_graph, best_metrics, prov = search(initial, rules, ep, sc)
+def rule_adaptive_fix(ep: EvalParams) -> RuleFn:
+    def apply(g: Graph) -> List[RuleResult]:
+        m = evaluate(g, ep)
+        outs = []
+        segs = g.find("Segment")
+        if not segs:
+            return outs
+        shortest = min(segs, key=lambda nid: g.nodes[nid]["props"]["length"])
+        thinnest = min(segs, key=lambda nid: g.nodes[nid]["props"]["thickness"])
+        if m["length"] < ep.target_length:
+            ng = g.clone()
+            ng.nodes[shortest]["props"]["length"] += max(0.4, (ep.target_length - m["length"]) * 0.5)
+            outs.append(RuleResult(ng, "AdaptiveFix(Length)"))
+        if m["stress"] > ep.stress_limit:
+            ng2 = g.clone()
+            ng2.nodes[thinnest]["props"]["thickness"] += max(0.2, (m["stress"] - ep.stress_limit) * 0.6)
+            outs.append(RuleResult(ng2, "AdaptiveFix(Stress)"))
+        return outs
+    return apply
 
-    # Export artifacts
-    export_svg_rod(best_graph, "./data/rod.svg")
-    prov.dump("./data/provenance.txt")
-    with open("./data/best_design.json", "w") as f:
-        json.dump(best_graph.to_json(), f, indent=2)
+def rule_merge_shortest_pair() -> RuleFn:
+    def apply(g: Graph) -> List[RuleResult]:
+        segs = g.find("Segment")
+        if len(segs) < 2:
+            return []
+        segs_sorted = sorted(segs, key=lambda nid: g.nodes[nid]["props"]["length"])
+        a, b = segs_sorted[0], segs_sorted[1]
+        pa, pb = g.nodes[a]["props"], g.nodes[b]["props"]
+        ng = g.clone()
+        nid = f"seg{len(ng.find('Segment'))+1}"
+        new_len = float(pa["length"] + pb["length"])
+        new_th = float(pa["thickness"] + pb["thickness"]) * 0.9
+        new_mat = "steel" if (pa["material"] == "steel" or pb["material"] == "steel") else "aluminum"
+        ng.add_node(nid, "Segment", length=new_len, thickness=new_th, material=new_mat)
+        ng.add_edge("rod", "has", nid)
+        for old in (a, b):
+            del ng.nodes[old]
+            ng.edges = [e for e in ng.edges if e[2] != old]
+        return [RuleResult(ng, f"MergeShortestPair({a},{b})->{nid}")]
+    return apply
 
-    print("Best metrics:", best_metrics)
-    print("Files: ./data/rod.svg, ./data/provenance.txt, ./data/best_design.json")
+# ------------------------------
+# Run: baseline then meta-expanded
+# ------------------------------
+
+random.seed(7)
+initial = make_initial_rod()
+
+# Baseline run
+ep0 = EvalParams(load=10.0, target_length=4.0, stress_limit=1.0)
+sc0 = SearchConfig(iters=5000, beam_width=10)
+rules0 = [
+    rule_add_segment(0.9, 0.8, "aluminum"),
+    rule_increase_length(0.7),
+    rule_increase_thickness(0.35),
+    rule_swap_material(),
+    rule_remove_shortest(min_keep=1),
+]
+best_g0, best_m0, prov0 = search(initial, rules0, ep0, sc0)
+export_svg_rod(best_g0, "./data/rod.svg")
+prov0.dump("./data/provenance.txt")
+with open("./data/best_design.json", "w") as f:
+    json.dump(best_g0.to_json(), f, indent=2)
+
+# Mine provenance and register rules in-graph
+rows0, stats0 = mine_provenance(prov0)
+rule_registry_to_graph(best_g0, [s["rule"] for s in stats0])
+
+# Meta/expanded run
+ep1 = EvalParams(load=9.0, target_length=4.0, stress_limit=1.2)  # slightly eased to show feasibility improvements
+sc1 = SearchConfig(iters=5000, beam_width=10)
+rules1 = rules0 + [rule_adaptive_fix(ep1), rule_merge_shortest_pair()]
+best_g1, best_m1, prov1 = search(initial, rules1, ep1, sc1)
+export_svg_rod(best_g1, "./data/rod_v2.svg")
+prov1.dump("./data/provenance_v2.txt")
+with open("./data/best_design_v2.json", "w") as f:
+    json.dump(best_g1.to_json(), f, indent=2)
+
+# Meta report
+with open("./data/meta_report.txt", "w") as f:
+    f.write("=== Baseline rule stats (provenance mining) ===\n")
+    for s in stats0:
+        f.write(f"{s['rule']}: count={s['count']}, mean_delta={s['mean_delta']:.3f}, "
+                f"pos_rate={s['pos_rate']:.2f}, total_delta={s['total_delta']:.3f}\n")
+    f.write("\n=== Metrics ===\n")
+    f.write(f"Baseline best (strict ep0): {best_m0}\n")
+    f.write(f"Expanded best (slightly eased ep1): {best_m1}\n")
+
+print("Baseline best:", best_m0)
+print("Expanded best:", best_m1)
+print("Files written.")
 
