@@ -1,81 +1,27 @@
-# Full self-contained Builder → Builder-Builder v0 demo
-# Includes kernel (G, R, E, S, IO, P) and meta-learning (provenance mining + synthesized rules)
-#
-# Outputs:
-# - ./data/rod.svg, ./data/provenance.txt, ./data/best_design.json   (baseline)
-# - ./data/rod_v2.svg, ./data/provenance_v2.txt, ./data/best_design_v2.json, ./data/meta_report.txt (meta)
+# Re-run with minor fix (no walrus in f-string expression list)
+# Pattern/Guard/Replacement Rule-Graphs + Live Specialization
 
 from dataclasses import dataclass, field
-from typing import Dict, Any, List, Tuple, Callable
+from typing import Dict, Any, List, Tuple, Callable, Optional
 import json, random
-
-# -------------------------------
-# G: Very small typed-graph store
-# -------------------------------
 
 class Graph:
     def __init__(self):
-        self.nodes: Dict[str, Dict[str, Any]] = {}  # id -> {type, props}
-        self.edges: List[Tuple[str, str, str]] = [] # (src, type, dst)
-
+        self.nodes: Dict[str, Dict[str, Any]] = {}
+        self.edges: List[Tuple[str, str, str]] = []
     def add_node(self, nid: str, ntype: str, **props):
         self.nodes[nid] = {"type": ntype, "props": dict(props)}
-
     def add_edge(self, src: str, etype: str, dst: str):
         self.edges.append((src, etype, dst))
-
     def find(self, ntype: str) -> List[str]:
         return [nid for nid, n in self.nodes.items() if n["type"] == ntype]
-
     def clone(self) -> "Graph":
         g = Graph()
         g.nodes = {k: {"type": v["type"], "props": dict(v["props"])} for k, v in self.nodes.items()}
         g.edges = list(self.edges)
         return g
-
     def to_json(self) -> Dict[str, Any]:
         return {"nodes": self.nodes, "edges": self.edges}
-
-# ----------------------------------------
-# IO: Minimal SVG emitter for the rod model
-# ----------------------------------------
-
-def export_svg_rod(g: Graph, path: str):
-    segments = []
-    for nid in g.find("Segment"):
-        p = g.nodes[nid]["props"]
-        segments.append((nid, float(p["length"]), float(p["thickness"]), p["material"]))
-    segments.sort(key=lambda t: t[0])
-    x = 10
-    y = 40
-    hscale = 80
-    vscale = 12
-    width = 40 + int(sum(s[1] for s in segments) * hscale) + 10 * len(segments)
-    height = 120
-
-    def mat_color(m):
-        return {"aluminum": "#9bb7d4", "steel": "#666666"}.get(m, "#cccccc")
-
-    rects = []
-    for _, length, thick, mat in segments:
-        w = length * hscale
-        h = thick * vscale
-        y0 = y - h // 2
-        rects.append(f'<rect x="{x:.1f}" y="{y0:.1f}" width="{w:.1f}" height="{h:.1f}" '
-                     f'rx="6" ry="6" fill="{mat_color(mat)}" stroke="#222" stroke-width="1"/>')
-        x += w + 4
-
-    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">
-  <rect x="0" y="0" width="{width}" height="{height}" fill="white"/>
-  <text x="10" y="18" font-family="monospace" font-size="12">Rod design</text>
-  {''.join(rects)}
-</svg>'''
-    with open(path, "w") as f:
-        f.write(svg)
-
-# -----------------------------------
-# E: Evaluator for the rod toy domain
-# -----------------------------------
 
 DENSITY = {"aluminum": 1.0, "steel": 2.6}
 STRENGTH = {"aluminum": 1.0, "steel": 2.2}
@@ -87,95 +33,27 @@ class EvalParams:
     stress_limit: float = 1.0
 
 def evaluate(g: Graph, ep: EvalParams) -> Dict[str, Any]:
-    length = 0.0
-    weight = 0.0
-    strength_scale = 0.0
+    length = 0.0; weight = 0.0; strength = 0.0
     for nid in g.find("Segment"):
         p = g.nodes[nid]["props"]
-        L = float(p["length"])
-        T = float(p["thickness"])
-        M = p["material"]
-        length += L
-        weight += L * T * DENSITY[M]
-        strength_scale += T * STRENGTH[M]
-
-    stress = ep.load / max(strength_scale, 1e-6)
+        L = float(p["length"]); T = float(p["thickness"]); M = p["material"]
+        length += L; weight += L*T*DENSITY[M]; strength += T*STRENGTH[M]
+    stress = ep.load / max(strength, 1e-6)
     feasible = (length >= ep.target_length) and (stress <= ep.stress_limit)
     nseg = len(g.find("Segment"))
-    cost = (0 if feasible else 1000) + weight + 0.5 * stress + 0.05 * nseg
+    cost = (0 if feasible else 1000) + weight + 0.5*stress + 0.05*nseg
     return {"length": length, "stress": stress, "weight": weight, "segments": nseg, "feasible": feasible, "cost": cost}
-
-# -------------------
-# R: Rewrite machinery
-# -------------------
 
 @dataclass
 class RuleResult:
     new_graph: Graph
     desc: str
-
 RuleFn = Callable[[Graph], List[RuleResult]]
-
-def rule_add_segment(base_len=0.8, base_thick=0.8, material="aluminum") -> RuleFn:
-    def apply(g: Graph) -> List[RuleResult]:
-        ng = g.clone()
-        nid = f"seg{len(ng.find('Segment'))+1}"
-        ng.add_node(nid, "Segment", length=base_len, thickness=base_thick, material=material)
-        ng.add_edge("rod", "has", nid)
-        return [RuleResult(ng, f"AddSegment({base_len:.2f},{base_thick:.2f},{material})")]
-    return apply
-
-def rule_increase_length(delta=0.5) -> RuleFn:
-    def apply(g: Graph) -> List[RuleResult]:
-        outs = []
-        for nid in g.find("Segment"):
-            ng = g.clone()
-            ng.nodes[nid]["props"]["length"] += delta
-            outs.append(RuleResult(ng, f"IncreaseLength({nid},+{delta})"))
-        return outs
-    return apply
-
-def rule_increase_thickness(delta=0.3) -> RuleFn:
-    def apply(g: Graph) -> List[RuleResult]:
-        outs = []
-        for nid in g.find("Segment"):
-            ng = g.clone()
-            ng.nodes[nid]["props"]["thickness"] += delta
-            outs.append(RuleResult(ng, f"IncreaseThickness({nid},+{delta})"))
-        return outs
-    return apply
-
-def rule_swap_material() -> RuleFn:
-    def apply(g: Graph) -> List[RuleResult]:
-        outs = []
-        for nid in g.find("Segment"):
-            ng = g.clone()
-            m = ng.nodes[nid]["props"]["material"]
-            ng.nodes[nid]["props"]["material"] = "steel" if m == "aluminum" else "aluminum"
-            outs.append(RuleResult(ng, f"SwapMaterial({nid})"))
-        return outs
-    return apply
-
-def rule_remove_shortest(min_keep=1) -> RuleFn:
-    def apply(g: Graph) -> List[RuleResult]:
-        segs = g.find("Segment")
-        if len(segs) <= min_keep:
-            return []
-        shortest = min(segs, key=lambda nid: g.nodes[nid]["props"]["length"])
-        ng = g.clone()
-        del ng.nodes[shortest]
-        ng.edges = [e for e in ng.edges if e[2] != shortest]
-        return [RuleResult(ng, f"RemoveShortest({shortest})")]
-    return apply
-
-# ------------------------------
-# S: Small greedy/beam scheduler
-# ------------------------------
 
 @dataclass
 class SearchConfig:
-    iters: int = 40
-    beam_width: int = 6
+    iters: int = 80
+    beam_width: int = 12
     random_perturb: float = 0.05
 
 @dataclass
@@ -194,21 +72,18 @@ def search(initial: Graph, rules: List[RuleFn], ep: EvalParams, sc: SearchConfig
     beam: List[Tuple[float, Graph, Dict[str, Any], str]] = []
     m0 = evaluate(initial, ep)
     beam.append((score(m0), initial, m0, "init"))
-    prov = Provenance()
-    prov.log("init", m0)
+    prov = Provenance(); prov.log("init", m0)
     best = (m0["cost"], initial, m0, "init")
     for _ in range(sc.iters):
-        candidates: List[Tuple[float, Graph, Dict[str, Any], str]] = []
+        cand: List[Tuple[float, Graph, Dict[str, Any], str]] = []
         for _, g, _, _ in beam:
             for r in rules:
                 for rr in r(g):
                     m = evaluate(rr.new_graph, ep)
-                    s = score(m)
-                    candidates.append((s, rr.new_graph, m, rr.desc))
-        if not candidates:
-            break
-        candidates.sort(key=lambda t: t[0])
-        beam = candidates[:sc.beam_width]
+                    cand.append((score(m), rr.new_graph, m, rr.desc))
+        if not cand: break
+        cand.sort(key=lambda t: t[0])
+        beam = cand[:sc.beam_width]
         b0 = beam[0]
         if b0[2]["cost"] < best[2]["cost"]:
             best = b0
@@ -217,148 +92,187 @@ def search(initial: Graph, rules: List[RuleFn], ep: EvalParams, sc: SearchConfig
             break
     return best[1], best[2], prov
 
-# ------------------------------
-# Bootstrap an initial rod graph
-# ------------------------------
+def export_svg_rod(g: Graph, path: str):
+    segs = []
+    for nid in g.find("Segment"):
+        p = g.nodes[nid]["props"]
+        segs.append((nid, float(p["length"]), float(p["thickness"]), p["material"]))
+    segs.sort(key=lambda t: t[0])
+    x=10; y=40; hscale=80; vscale=12
+    width = 40 + int(sum(s[1] for s in segs)*hscale) + 10*len(segs)
+    height = 120
+    def color(m): return {"aluminum":"#9bb7d4","steel":"#666"}.get(m,"#ccc")
+    rects=[]
+    for _,L,T,M in segs:
+        w=L*hscale; h=T*vscale; y0=y - int(h//2)
+        rects.append(f'<rect x="{x:.1f}" y="{y0:.1f}" width="{w:.1f}" height="{h:.1f}" rx="6" ry="6" fill="{color(M)}" stroke="#222" stroke-width="1"/>')
+        x += w + 4
+    svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}"><rect x="0" y="0" width="{width}" height="{height}" fill="white"/><text x="10" y="18" font-family="monospace" font-size="12">Rod design</text>{"".join(rects)}</svg>'
+    with open(path,"w") as f: f.write(svg)
+
+# --- Rule-graphs with pattern/guard/replacement ---
+
+def install_rule_graphs_pgr() -> Graph:
+    rg = Graph()
+    rg.add_node("ruleset", "RuleSet", name="default")
+    # R1 AddSegment
+    rg.add_node("R1","Rule",name="AddSegment",kind="AddSegment")
+    for k,v in [("length",0.9),("thickness",0.8),("material","aluminum")]:
+        pid=f"R1.{k}"; rg.add_node(pid,"Param",key=k,value=v); rg.add_edge("R1","has_param",pid)
+    rg.add_edge("ruleset","has_rule","R1")
+    # R2 IncreaseLength (no guard initially)
+    rg.add_node("R2","Rule",name="IncreaseLength",kind="IncreaseLength")
+    rg.add_node("R2.delta","Param",key="delta",value=0.7); rg.add_edge("R2","has_param","R2.delta")
+    rg.add_node("R2.x","PatternVar",var="x",type="Segment"); rg.add_edge("R2","has_var","R2.x")
+    rg.add_edge("ruleset","has_rule","R2")
+    # R3 IncreaseThickness
+    rg.add_node("R3","Rule",name="IncreaseThickness",kind="IncreaseThickness")
+    rg.add_node("R3.delta","Param",key="delta",value=0.35); rg.add_edge("R3","has_param","R3.delta")
+    rg.add_node("R3.x","PatternVar",var="x",type="Segment"); rg.add_edge("R3","has_var","R3.x")
+    rg.add_edge("ruleset","has_rule","R3")
+    # R4 SwapMaterial
+    rg.add_node("R4","Rule",name="SwapMaterial",kind="SwapMaterial")
+    rg.add_node("R4.x","PatternVar",var="x",type="Segment"); rg.add_edge("R4","has_var","R4.x")
+    rg.add_edge("ruleset","has_rule","R4")
+    # R5 RemoveShortest
+    rg.add_node("R5","Rule",name="RemoveShortest",kind="RemoveShortest")
+    rg.add_node("R5.min","Param",key="min_keep",value=1); rg.add_edge("R5","has_param","R5.min")
+    rg.add_edge("ruleset","has_rule","R5")
+    return rg
+
+def export_json(obj, path):
+    with open(path,"w") as f: json.dump(obj,f,indent=2)
+
+def get_params(rg: Graph, rid: str) -> Dict[str, Any]:
+    out={}
+    for (src,et,dst) in rg.edges:
+        if src==rid and et=="has_param":
+            p=rg.nodes[dst]["props"]; out[p["key"]]=p["value"]
+    return out
+
+def get_guards(rg: Graph, rid: str) -> List[Dict[str, Any]]:
+    out=[]
+    for (src,et,dst) in rg.edges:
+        if src==rid and et=="has_guard":
+            out.append(rg.nodes[dst]["props"])
+    return out
+
+def compile_rules_from_pgr(rg: Graph) -> List[RuleFn]:
+    fns: List[RuleFn]=[]
+    for rid in rg.find("Rule"):
+        kind=rg.nodes[rid]["props"]["kind"]
+        params=get_params(rg,rid)
+        guards=get_guards(rg,rid)
+
+        if kind=="AddSegment":
+            base_len=float(params.get("length",0.8)); base_th=float(params.get("thickness",0.8)); mat=str(params.get("material","aluminum"))
+            def fn(g: Graph, bl=base_len, bt=base_th, m=mat):
+                ng=g.clone(); nid=f"seg{len(ng.find('Segment'))+1}"
+                ng.add_node(nid,"Segment",length=bl,thickness=bt,material=m); ng.add_edge("rod","has",nid)
+                return [RuleResult(ng, f"AddSegment({bl:.2f},{bt:.2f},{m})")]
+            fns.append(fn)
+
+        elif kind=="IncreaseLength":
+            delta=float(params.get("delta",0.5))
+            def fn(g: Graph, d=delta, guards_=guards):
+                outs=[]
+                for nid in g.find("Segment"):
+                    ok=True
+                    for gd in guards_:
+                        if gd.get("var")=="x" and gd.get("key")=="length" and gd.get("op")=="<":
+                            if not (g.nodes[nid]["props"]["length"] < float(gd["value"])):
+                                ok=False; break
+                    if not ok: continue
+                    ng=g.clone(); ng.nodes[nid]["props"]["length"] += d
+                    outs.append(RuleResult(ng, f"IncreaseLength({nid},+{d})"))
+                return outs
+            fns.append(fn)
+
+        elif kind=="IncreaseThickness":
+            delta=float(params.get("delta",0.3))
+            def fn(g: Graph, d=delta):
+                outs=[]
+                for nid in g.find("Segment"):
+                    ng=g.clone(); ng.nodes[nid]["props"]["thickness"] += d
+                    outs.append(RuleResult(ng, f"IncreaseThickness({nid},+{d})"))
+                return outs
+            fns.append(fn)
+
+        elif kind=="SwapMaterial":
+            def fn(g: Graph):
+                outs=[]
+                for nid in g.find("Segment"):
+                    ng=g.clone(); m=ng.nodes[nid]["props"]["material"]
+                    ng.nodes[nid]["props"]["material"]="steel" if m=="aluminum" else "aluminum"
+                    outs.append(RuleResult(ng, f"SwapMaterial({nid})"))
+                return outs
+            fns.append(fn)
+
+        elif kind=="RemoveShortest":
+            min_keep=int(params.get("min_keep",1))
+            def fn(g: Graph, mk=min_keep):
+                segs=g.find("Segment")
+                if len(segs)<=mk: return []
+                shortest=min(segs, key=lambda nid: g.nodes[nid]["props"]["length"])
+                ng=g.clone(); del ng.nodes[shortest]
+                ng.edges=[e for e in ng.edges if e[2]!=shortest]
+                return [RuleResult(ng, f"RemoveShortest({shortest})")]
+            fns.append(fn)
+    return fns
+
+def add_len_guard_specialization(rg: Graph, max_len: float):
+    rid=None
+    for nid,n in rg.nodes.items():
+        if n["type"]=="Rule" and n["props"].get("name")=="IncreaseLength":
+            rid=nid; break
+    if rid is None: return False
+    # if already present, update value
+    for (src,et,dst) in list(rg.edges):
+        if src==rid and et=="has_guard":
+            rg.nodes[dst]["props"]["value"]=float(max_len)
+            return True
+    gid="R2.guard.lenlt"
+    rg.add_node(gid,"Guard",var="x",op="<",key="length",value=float(max_len))
+    rg.add_edge(rid,"has_guard",gid)
+    return True
 
 def make_initial_rod() -> Graph:
-    g = Graph()
-    g.add_node("rod", "Assembly", name="rod-1")
-    g.add_node("seg1", "Segment", length=1.0, thickness=0.8, material="aluminum")
-    g.add_edge("rod", "has", "seg1")
+    g=Graph(); g.add_node("rod","Assembly",name="rod-1")
+    g.add_node("seg1","Segment",length=1.0,thickness=0.8,material="aluminum"); g.add_edge("rod","has","seg1")
     return g
 
-# ------------------------------
-# Meta: rules as graph descriptors & mining
-# ------------------------------
-
-def rule_registry_to_graph(g: Graph, rule_names: List[str]):
-    if "ruleset" not in g.nodes:
-        g.add_node("ruleset", "RuleSet", name="default")
-    for rn in rule_names:
-        rid = f"rule::{rn}"
-        if rid not in g.nodes:
-            g.add_node(rid, "Rule", name=rn)
-            g.add_edge("ruleset", "has_rule", rid)
-
-def mine_provenance(prov: Provenance):
-    rows = []
-    last_cost = None
-    for s in prov.steps:
-        rule = s["rule"]
-        cost = s["metrics"]["cost"]
-        feas = s["metrics"]["feasible"]
-        delta = 0.0 if last_cost is None else last_cost - cost
-        rows.append({"rule": rule, "delta": delta, "feasible": feas, "cost": cost})
-        last_cost = cost
-    def base_name(r): return r.split("(")[0] if "(" in r else r
-    agg = {}
-    for r in rows:
-        bn = base_name(r["rule"])
-        a = agg.setdefault(bn, {"count": 0, "total_delta": 0.0, "pos": 0})
-        a["count"] += 1
-        a["total_delta"] += r["delta"]
-        a["pos"] += int(r["delta"] > 0)
-    stats_by_rule = []
-    for bn, a in agg.items():
-        pos_rate = a["pos"] / max(1, a["count"])
-        mean_delta = a["total_delta"] / max(1, a["count"])
-        stats_by_rule.append({"rule": bn, "count": a["count"], "mean_delta": mean_delta, "pos_rate": pos_rate, "total_delta": a["total_delta"]})
-    stats_by_rule.sort(key=lambda r: (r["total_delta"], r["mean_delta"], r["pos_rate"]), reverse=True)
-    return rows, stats_by_rule
-
-# --- Meta-synthesized rules ---
-
-def rule_adaptive_fix(ep: EvalParams) -> RuleFn:
-    def apply(g: Graph) -> List[RuleResult]:
-        m = evaluate(g, ep)
-        outs = []
-        segs = g.find("Segment")
-        if not segs:
-            return outs
-        shortest = min(segs, key=lambda nid: g.nodes[nid]["props"]["length"])
-        thinnest = min(segs, key=lambda nid: g.nodes[nid]["props"]["thickness"])
-        if m["length"] < ep.target_length:
-            ng = g.clone()
-            ng.nodes[shortest]["props"]["length"] += max(0.4, (ep.target_length - m["length"]) * 0.5)
-            outs.append(RuleResult(ng, "AdaptiveFix(Length)"))
-        if m["stress"] > ep.stress_limit:
-            ng2 = g.clone()
-            ng2.nodes[thinnest]["props"]["thickness"] += max(0.2, (m["stress"] - ep.stress_limit) * 0.6)
-            outs.append(RuleResult(ng2, "AdaptiveFix(Stress)"))
-        return outs
-    return apply
-
-def rule_merge_shortest_pair() -> RuleFn:
-    def apply(g: Graph) -> List[RuleResult]:
-        segs = g.find("Segment")
-        if len(segs) < 2:
-            return []
-        segs_sorted = sorted(segs, key=lambda nid: g.nodes[nid]["props"]["length"])
-        a, b = segs_sorted[0], segs_sorted[1]
-        pa, pb = g.nodes[a]["props"], g.nodes[b]["props"]
-        ng = g.clone()
-        nid = f"seg{len(ng.find('Segment'))+1}"
-        new_len = float(pa["length"] + pb["length"])
-        new_th = float(pa["thickness"] + pb["thickness"]) * 0.9
-        new_mat = "steel" if (pa["material"] == "steel" or pb["material"] == "steel") else "aluminum"
-        ng.add_node(nid, "Segment", length=new_len, thickness=new_th, material=new_mat)
-        ng.add_edge("rod", "has", nid)
-        for old in (a, b):
-            del ng.nodes[old]
-            ng.edges = [e for e in ng.edges if e[2] != old]
-        return [RuleResult(ng, f"MergeShortestPair({a},{b})->{nid}")]
-    return apply
-
-# ------------------------------
-# Run: baseline then meta-expanded
-# ------------------------------
-
+# Run
 random.seed(7)
+
+rg_before = install_rule_graphs_pgr()
+export_json(rg_before.to_json(), "./data/rules_pgr_before.json")
+
+rules_before = compile_rules_from_pgr(rg_before)
 initial = make_initial_rod()
+ep = EvalParams(load=10.0, target_length=4.0, stress_limit=1.0)
+sc = SearchConfig(iters=80, beam_width=12)
+best_g_b, best_m_b, prov_b = search(initial, rules_before, ep, sc)
+export_svg_rod(best_g_b, "./data/rod_v4_before.svg")
+prov_b.dump("./data/provenance_v4_before.txt")
+with open("./data/best_design_v4_before.json","w") as f: json.dump(best_g_b.to_json(), f, indent=2)
 
-# Baseline run
-ep0 = EvalParams(load=10.0, target_length=4.0, stress_limit=1.0)
-sc0 = SearchConfig(iters=5000, beam_width=10)
-rules0 = [
-    rule_add_segment(0.9, 0.8, "aluminum"),
-    rule_increase_length(0.7),
-    rule_increase_thickness(0.35),
-    rule_swap_material(),
-    rule_remove_shortest(min_keep=1),
-]
-best_g0, best_m0, prov0 = search(initial, rules0, ep0, sc0)
-export_svg_rod(best_g0, "./data/rod.svg")
-prov0.dump("./data/provenance.txt")
-with open("./data/best_design.json", "w") as f:
-    json.dump(best_g0.to_json(), f, indent=2)
+# Specialize IncreaseLength with guard x.length < 1.2
+changed = add_len_guard_specialization(rg_before, max_len=1.2)
+rules_after = compile_rules_from_pgr(rg_before)
+export_json(rg_before.to_json(), "./data/rules_pgr_after.json")
 
-# Mine provenance and register rules in-graph
-rows0, stats0 = mine_provenance(prov0)
-rule_registry_to_graph(best_g0, [s["rule"] for s in stats0])
+best_g_a, best_m_a, prov_a = search(initial, rules_after, ep, sc)
+export_svg_rod(best_g_a, "./data/rod_v4_after.svg")
+prov_a.dump("./data/provenance_v4_after.txt")
+with open("./data/best_design_v4_after.json","w") as f: json.dump(best_g_a.to_json(), f, indent=2)
 
-# Meta/expanded run
-ep1 = EvalParams(load=9.0, target_length=4.0, stress_limit=1.2)  # slightly eased to show feasibility improvements
-sc1 = SearchConfig(iters=5000, beam_width=10)
-rules1 = rules0 + [rule_adaptive_fix(ep1), rule_merge_shortest_pair()]
-best_g1, best_m1, prov1 = search(initial, rules1, ep1, sc1)
-export_svg_rod(best_g1, "./data/rod_v2.svg")
-prov1.dump("./data/provenance_v2.txt")
-with open("./data/best_design_v2.json", "w") as f:
-    json.dump(best_g1.to_json(), f, indent=2)
-
-# Meta report
-with open("./data/meta_report.txt", "w") as f:
-    f.write("=== Baseline rule stats (provenance mining) ===\n")
-    for s in stats0:
-        f.write(f"{s['rule']}: count={s['count']}, mean_delta={s['mean_delta']:.3f}, "
-                f"pos_rate={s['pos_rate']:.2f}, total_delta={s['total_delta']:.3f}\n")
+with open("./data/meta_pgr_changes.txt","w") as f:
+    f.write("=== Pattern/Guard specialization ===\n")
+    f.write(f"IncreaseLength now guarded: apply only when x.length < 1.2 (changed={changed})\n")
     f.write("\n=== Metrics ===\n")
-    f.write(f"Baseline best (strict ep0): {best_m0}\n")
-    f.write(f"Expanded best (slightly eased ep1): {best_m1}\n")
+    f.write(f"Before: {best_m_b}\nAfter:  {best_m_a}\n")
 
-print("Baseline best:", best_m0)
-print("Expanded best:", best_m1)
-print("Files written.")
-
+print("Before metrics:", best_m_b)
+print("After metrics:", best_m_a)
+print("Guard added/updated:", changed)
 
