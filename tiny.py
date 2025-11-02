@@ -1,9 +1,27 @@
-# Re-run with minor fix (no walrus in f-string expression list)
-# Pattern/Guard/Replacement Rule-Graphs + Live Specialization
+# Provenance-driven guard selection + Golden-set acceptance
+# --------------------------------------------------------
+# This extends the P/G/R rule-graph system:
+# - Logs per-application context for IncreaseLength, including prev length
+# - Mines the provenance to compute a median prev-length where IncreaseLength
+#   yielded positive cost improvements
+# - Sets the guard max_len to that median (plus a small epsilon)
+# - Evaluates on a small "golden set" of tasks; accepts the change only if the
+#   aggregate cost improves (or feasibility count increases)
+#
+# Artifacts:
+# - ./data/meta_guard_selection.txt
+# - ./data/rules_pgr_auto_before.json
+# - ./data/rules_pgr_auto_after.json
+# - ./data/golden_results_before.json
+# - ./data/golden_results_after.json
 
 from dataclasses import dataclass, field
 from typing import Dict, Any, List, Tuple, Callable, Optional
-import json, random
+import json, random, statistics
+
+# -------------------------------
+# Minimal kernel and domain
+# -------------------------------
 
 class Graph:
     def __init__(self):
@@ -52,65 +70,29 @@ RuleFn = Callable[[Graph], List[RuleResult]]
 
 @dataclass
 class SearchConfig:
-    iters: int = 80
+    iters: int = 90
     beam_width: int = 12
     random_perturb: float = 0.05
 
 @dataclass
 class Provenance:
     steps: List[Dict[str, Any]] = field(default_factory=list)
-    def log(self, desc: str, metrics: Dict[str, Any]):
-        self.steps.append({"rule": desc, "metrics": dict(metrics)})
+    def log(self, desc: str, metrics: Dict[str, Any], extra: Optional[Dict[str, Any]] = None):
+        rec = {"rule": desc, "metrics": dict(metrics)}
+        if extra: rec["extra"] = extra
+        self.steps.append(rec)
     def dump(self, path: str):
         with open(path, "w") as f:
             for i, s in enumerate(self.steps):
                 f.write(f"Step {i+1}: {s['rule']}\n")
-                f.write(json.dumps(s["metrics"], indent=2) + "\n\n")
+                f.write(json.dumps(s.get("metrics", {}), indent=2) + "\n")
+                if "extra" in s:
+                    f.write("extra: " + json.dumps(s["extra"]) + "\n")
+                f.write("\n")
 
-def search(initial: Graph, rules: List[RuleFn], ep: EvalParams, sc: SearchConfig):
-    def score(m): return m["cost"] + sc.random_perturb * random.random()
-    beam: List[Tuple[float, Graph, Dict[str, Any], str]] = []
-    m0 = evaluate(initial, ep)
-    beam.append((score(m0), initial, m0, "init"))
-    prov = Provenance(); prov.log("init", m0)
-    best = (m0["cost"], initial, m0, "init")
-    for _ in range(sc.iters):
-        cand: List[Tuple[float, Graph, Dict[str, Any], str]] = []
-        for _, g, _, _ in beam:
-            for r in rules:
-                for rr in r(g):
-                    m = evaluate(rr.new_graph, ep)
-                    cand.append((score(m), rr.new_graph, m, rr.desc))
-        if not cand: break
-        cand.sort(key=lambda t: t[0])
-        beam = cand[:sc.beam_width]
-        b0 = beam[0]
-        if b0[2]["cost"] < best[2]["cost"]:
-            best = b0
-        prov.log(b0[3], b0[2])
-        if best[2]["feasible"] and best[2]["cost"] <= 0.9 + 1e-6:
-            break
-    return best[1], best[2], prov
-
-def export_svg_rod(g: Graph, path: str):
-    segs = []
-    for nid in g.find("Segment"):
-        p = g.nodes[nid]["props"]
-        segs.append((nid, float(p["length"]), float(p["thickness"]), p["material"]))
-    segs.sort(key=lambda t: t[0])
-    x=10; y=40; hscale=80; vscale=12
-    width = 40 + int(sum(s[1] for s in segs)*hscale) + 10*len(segs)
-    height = 120
-    def color(m): return {"aluminum":"#9bb7d4","steel":"#666"}.get(m,"#ccc")
-    rects=[]
-    for _,L,T,M in segs:
-        w=L*hscale; h=T*vscale; y0=y - int(h//2)
-        rects.append(f'<rect x="{x:.1f}" y="{y0:.1f}" width="{w:.1f}" height="{h:.1f}" rx="6" ry="6" fill="{color(M)}" stroke="#222" stroke-width="1"/>')
-        x += w + 4
-    svg=f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}"><rect x="0" y="0" width="{width}" height="{height}" fill="white"/><text x="10" y="18" font-family="monospace" font-size="12">Rod design</text>{"".join(rects)}</svg>'
-    with open(path,"w") as f: f.write(svg)
-
-# --- Rule-graphs with pattern/guard/replacement ---
+# -------------------------------
+# Rule-graphs with P/G/R
+# -------------------------------
 
 def install_rule_graphs_pgr() -> Graph:
     rg = Graph()
@@ -157,7 +139,27 @@ def get_guards(rg: Graph, rid: str) -> List[Dict[str, Any]]:
             out.append(rg.nodes[dst]["props"])
     return out
 
-def compile_rules_from_pgr(rg: Graph) -> List[RuleFn]:
+def add_len_guard(rg: Graph, max_len: float):
+    rid=None
+    for nid,n in rg.nodes.items():
+        if n["type"]=="Rule" and n["props"].get("name")=="IncreaseLength":
+            rid=nid; break
+    if rid is None: return False
+    # update if exists
+    for (src,et,dst) in list(rg.edges):
+        if src==rid and et=="has_guard":
+            rg.nodes[dst]["props"]["value"]=float(max_len)
+            return True
+    gid="R2.guard.lenlt"
+    rg.add_node(gid,"Guard",var="x",op="<",key="length",value=float(max_len))
+    rg.add_edge(rid,"has_guard",gid)
+    return True
+
+# ----------------------------------
+# Compile rule-graphs to executable
+# ----------------------------------
+
+def compile_rules_from_pgr(rg: Graph, prov_hook: Optional[Provenance] = None) -> List[RuleFn]:
     fns: List[RuleFn]=[]
     for rid in rg.find("Rule"):
         kind=rg.nodes[rid]["props"]["kind"]
@@ -165,36 +167,40 @@ def compile_rules_from_pgr(rg: Graph) -> List[RuleFn]:
         guards=get_guards(rg,rid)
 
         if kind=="AddSegment":
-            base_len=float(params.get("length",0.8)); base_th=float(params.get("thickness",0.8)); mat=str(params.get("material","aluminum"))
-            def fn(g: Graph, bl=base_len, bt=base_th, m=mat):
+            bl=float(params.get("length",0.8)); bt=float(params.get("thickness",0.8)); m=str(params.get("material","aluminum"))
+            def fn(g: Graph, bl=bl, bt=bt, m=m):
                 ng=g.clone(); nid=f"seg{len(ng.find('Segment'))+1}"
                 ng.add_node(nid,"Segment",length=bl,thickness=bt,material=m); ng.add_edge("rod","has",nid)
                 return [RuleResult(ng, f"AddSegment({bl:.2f},{bt:.2f},{m})")]
             fns.append(fn)
 
         elif kind=="IncreaseLength":
-            delta=float(params.get("delta",0.5))
-            def fn(g: Graph, d=delta, guards_=guards):
+            d=float(params.get("delta",0.5))
+            def fn(g: Graph, d=d, guards_=guards, hook=prov_hook):
                 outs=[]
                 for nid in g.find("Segment"):
+                    # guard checks
                     ok=True
                     for gd in guards_:
                         if gd.get("var")=="x" and gd.get("key")=="length" and gd.get("op")=="<":
                             if not (g.nodes[nid]["props"]["length"] < float(gd["value"])):
                                 ok=False; break
                     if not ok: continue
-                    ng=g.clone(); ng.nodes[nid]["props"]["length"] += d
-                    outs.append(RuleResult(ng, f"IncreaseLength({nid},+{d})"))
+                    prevL = float(g.nodes[nid]["props"]["length"])
+                    ng=g.clone(); ng.nodes[nid]["props"]["length"] = prevL + d
+                    desc=f"IncreaseLength({nid},+{d},prevL={prevL:.3f})"
+                    outs.append(RuleResult(ng, desc))
                 return outs
             fns.append(fn)
 
         elif kind=="IncreaseThickness":
-            delta=float(params.get("delta",0.3))
-            def fn(g: Graph, d=delta):
+            d=float(params.get("delta",0.3))
+            def fn(g: Graph, d=d):
                 outs=[]
                 for nid in g.find("Segment"):
-                    ng=g.clone(); ng.nodes[nid]["props"]["thickness"] += d
-                    outs.append(RuleResult(ng, f"IncreaseThickness({nid},+{d})"))
+                    prevT=float(g.nodes[nid]["props"]["thickness"])
+                    ng=g.clone(); ng.nodes[nid]["props"]["thickness"] = prevT + d
+                    outs.append(RuleResult(ng, f"IncreaseThickness({nid},+{d},prevT={prevT:.3f})"))
                 return outs
             fns.append(fn)
 
@@ -209,8 +215,8 @@ def compile_rules_from_pgr(rg: Graph) -> List[RuleFn]:
             fns.append(fn)
 
         elif kind=="RemoveShortest":
-            min_keep=int(params.get("min_keep",1))
-            def fn(g: Graph, mk=min_keep):
+            mk=int(params.get("min_keep",1))
+            def fn(g: Graph, mk=mk):
                 segs=g.find("Segment")
                 if len(segs)<=mk: return []
                 shortest=min(segs, key=lambda nid: g.nodes[nid]["props"]["length"])
@@ -220,59 +226,158 @@ def compile_rules_from_pgr(rg: Graph) -> List[RuleFn]:
             fns.append(fn)
     return fns
 
-def add_len_guard_specialization(rg: Graph, max_len: float):
-    rid=None
-    for nid,n in rg.nodes.items():
-        if n["type"]=="Rule" and n["props"].get("name")=="IncreaseLength":
-            rid=nid; break
-    if rid is None: return False
-    # if already present, update value
-    for (src,et,dst) in list(rg.edges):
-        if src==rid and et=="has_guard":
-            rg.nodes[dst]["props"]["value"]=float(max_len)
-            return True
-    gid="R2.guard.lenlt"
-    rg.add_node(gid,"Guard",var="x",op="<",key="length",value=float(max_len))
-    rg.add_edge(rid,"has_guard",gid)
-    return True
+# ----------------------------------
+# Search that captures per-step desc
+# ----------------------------------
 
-def make_initial_rod() -> Graph:
+def search_capture(initial: Graph, rules: List[RuleFn], ep: EvalParams, sc: SearchConfig):
+    def score(m): return m["cost"] + sc.random_perturb * random.random()
+    beam: List[Tuple[float, Graph, Dict[str, Any], str]] = []
+    m0 = evaluate(initial, ep)
+    beam.append((score(m0), initial, m0, "init"))
+    prov = Provenance(); prov.log("init", m0)
+    best = (m0["cost"], initial, m0, "init")
+    for _ in range(sc.iters):
+        cand: List[Tuple[float, Graph, Dict[str, Any], str]] = []
+        for _, g, _, _ in beam:
+            for r in rules:
+                for rr in r(g):
+                    m = evaluate(rr.new_graph, ep)
+                    cand.append((score(m), rr.new_graph, m, rr.desc))
+        if not cand: break
+        cand.sort(key=lambda t: t[0])
+        beam = cand[:sc.beam_width]
+        b0 = beam[0]
+        if b0[2]["cost"] < best[2]["cost"]:
+            best = b0
+        prov.log(b0[3], b0[2])
+        if best[2]["feasible"] and best[2]["cost"] <= 0.9 + 1e-6:
+            break
+    return best[1], best[2], prov
+
+# ----------------------------------
+# Golden set eval
+# ----------------------------------
+
+def make_initial_rod(len1=1.0, th1=0.8, mat1="aluminum") -> Graph:
     g=Graph(); g.add_node("rod","Assembly",name="rod-1")
-    g.add_node("seg1","Segment",length=1.0,thickness=0.8,material="aluminum"); g.add_edge("rod","has","seg1")
+    g.add_node("seg1","Segment",length=float(len1),thickness=float(th1),material=mat1); g.add_edge("rod","has","seg1")
     return g
 
-# Run
-random.seed(7)
+def golden_suite():
+    # A few varied initial states & evaluator params
+    tasks = [
+        (make_initial_rod(1.0,0.8,"aluminum"), EvalParams(load=10.0, target_length=4.0, stress_limit=1.0)),
+        (make_initial_rod(1.2,0.7,"aluminum"), EvalParams(load=9.0, target_length=4.0, stress_limit=1.1)),
+        (make_initial_rod(0.8,0.9,"steel"),    EvalParams(load=11.0, target_length=4.0, stress_limit=1.0)),
+        (make_initial_rod(1.5,0.6,"aluminum"), EvalParams(load=10.0, target_length=4.0, stress_limit=1.0)),
+    ]
+    return tasks
 
-rg_before = install_rule_graphs_pgr()
-export_json(rg_before.to_json(), "./data/rules_pgr_before.json")
+def run_suite(rules: List[RuleFn], sc: SearchConfig):
+    out=[]
+    for g0, ep in golden_suite():
+        best_g, best_m, _ = search_capture(g0, rules, ep, sc)
+        out.append(best_m)
+    return out
 
-rules_before = compile_rules_from_pgr(rg_before)
-initial = make_initial_rod()
-ep = EvalParams(load=10.0, target_length=4.0, stress_limit=1.0)
-sc = SearchConfig(iters=80, beam_width=12)
-best_g_b, best_m_b, prov_b = search(initial, rules_before, ep, sc)
-export_svg_rod(best_g_b, "./data/rod_v4_before.svg")
-prov_b.dump("./data/provenance_v4_before.txt")
-with open("./data/best_design_v4_before.json","w") as f: json.dump(best_g_b.to_json(), f, indent=2)
+def aggregate_results(results):
+    feas = sum(1 for r in results if r["feasible"])
+    avg_cost = sum(r["cost"] for r in results) / len(results)
+    return {"feasible_count": feas, "avg_cost": avg_cost, "n": len(results)}
 
-# Specialize IncreaseLength with guard x.length < 1.2
-changed = add_len_guard_specialization(rg_before, max_len=1.2)
-rules_after = compile_rules_from_pgr(rg_before)
-export_json(rg_before.to_json(), "./data/rules_pgr_after.json")
+# ----------------------------------
+# Provenance mining to choose guard
+# ----------------------------------
 
-best_g_a, best_m_a, prov_a = search(initial, rules_after, ep, sc)
-export_svg_rod(best_g_a, "./data/rod_v4_after.svg")
-prov_a.dump("./data/provenance_v4_after.txt")
-with open("./data/best_design_v4_after.json","w") as f: json.dump(best_g_a.to_json(), f, indent=2)
+def choose_guard_from_provenance(prov: Provenance, epsilon: float = 0.05) -> Optional[float]:
+    # For each step where rule is IncreaseLength and delta cost positive, capture prevL from desc
+    prev_cost = None
+    samples = []
+    for s in prov.steps:
+        rule = s["rule"]
+        cost = s["metrics"]["cost"]
+        delta = 0.0 if prev_cost is None else prev_cost - cost
+        prev_cost = cost
+        if rule.startswith("IncreaseLength(") and "prevL=" in rule and delta > 0:
+            try:
+                # parse prevL from desc
+                frag = rule.split("prevL=")[1]
+                prevL = float(frag.split(")")[0])
+                samples.append(prevL)
+            except Exception:
+                pass
+    if not samples:
+        return None
+    med = statistics.median(samples)
+    return med + epsilon
 
-with open("./data/meta_pgr_changes.txt","w") as f:
-    f.write("=== Pattern/Guard specialization ===\n")
-    f.write(f"IncreaseLength now guarded: apply only when x.length < 1.2 (changed={changed})\n")
-    f.write("\n=== Metrics ===\n")
-    f.write(f"Before: {best_m_b}\nAfter:  {best_m_a}\n")
+# ----------------------------------
+# RUN: baseline → mine → propose guard → golden eval → accept or reject
+# ----------------------------------
 
-print("Before metrics:", best_m_b)
-print("After metrics:", best_m_a)
-print("Guard added/updated:", changed)
+random.seed(11)
 
+# Build rule-graph and compile
+rg = install_rule_graphs_pgr()
+export_json(rg.to_json(), "./data/rules_pgr_auto_before.json")
+rules0 = compile_rules_from_pgr(rg)
+
+# Baseline: run one task to gather provenance (we'll use task 0)
+g0, ep0 = golden_suite()[0]
+sc = SearchConfig(iters=90, beam_width=12)
+best_g_b, best_m_b, prov_b = search_capture(g0, rules0, ep0, sc)
+
+# Choose guard from provenance
+max_len = choose_guard_from_provenance(prov_b, epsilon=0.05)
+
+# Evaluate rules0 on golden set
+res_before = run_suite(rules0, sc)
+agg_before = aggregate_results(res_before)
+
+accepted = False
+guard_value_used = None
+
+if max_len is not None:
+    # Propose: set guard to max_len
+    add_len_guard(rg, max_len=max_len)
+    export_json(rg.to_json(), "./data/rules_pgr_auto_after.json")
+    rules1 = compile_rules_from_pgr(rg)
+
+    # Evaluate on golden set
+    res_after = run_suite(rules1, sc)
+    agg_after = aggregate_results(res_after)
+
+    # Accept if feasibility improves OR avg cost decreases by >= 1.0
+    if (agg_after["feasible_count"] > agg_before["feasible_count"]) or (agg_after["avg_cost"] <= agg_before["avg_cost"] - 1.0):
+        accepted = True
+        guard_value_used = max_len
+        # keep after results
+        export_json(res_after, "./data/golden_results_after.json")
+    else:
+        # revert
+        export_json(rg.to_json(), "./data/rules_pgr_auto_after.json")  # still export for inspection
+        export_json(res_after, "./data/golden_results_after.json")
+else:
+    # No signal; still emit placeholder after to keep UX consistent
+    export_json(rg.to_json(), "./data/rules_pgr_auto_after.json")
+    rules1 = rules0
+    res_after = run_suite(rules1, sc)
+    agg_after = aggregate_results(res_after)
+    export_json(res_after, "./data/golden_results_after.json")
+
+# Export baseline results
+export_json(res_before, "./data/golden_results_before.json")
+
+# Meta log
+with open("./data/meta_guard_selection.txt","w") as f:
+    f.write("=== Provenance-Driven Guard Selection ===\n")
+    f.write(f"Derived guard max_len from baseline provenance: {max_len}\n")
+    f.write(f"Accepted into rule-graph: {accepted}\n")
+    f.write("\n=== Golden Set Aggregates ===\n")
+    f.write(f"Before: {agg_before}\n")
+    f.write(f"After:  {agg_after}\n")
+
+print("Derived guard:", max_len, "Accepted:", accepted)
+print("Golden before:", agg_before)
+print("Golden after: ", agg_after)
