@@ -200,8 +200,8 @@ def rule_remove_shortest(min_keep=1) -> RuleFn:
 
 @dataclass
 class SearchConfig:
-    iters: int = 40
-    beam_width: int = 6
+    iters: int = 4000
+    beam_width: int = 60
     random_perturb: float = 0.05  # tiny jitter to break ties
 
 @dataclass
@@ -274,8 +274,8 @@ if __name__ == "__main__":
     random.seed(7)
     initial = make_initial_rod()
 
-    ep = EvalParams(load=10.0, target_length=4.0, stress_limit=1.0)
-    sc = SearchConfig(iters=45, beam_width=6)
+    ep = EvalParams(load=1.0, target_length=1.0, stress_limit=1.0)
+    sc = SearchConfig(iters=450, beam_width=6)
 
     # Rule portfolio (mix exploration & simplification)
     rules = [
@@ -289,11 +289,11 @@ if __name__ == "__main__":
     best_graph, best_metrics, prov = search(initial, rules, ep, sc)
 
     # Export artifacts
-    export_svg_rod(best_graph, "/mnt/data/rod.svg")
-    prov.dump("/mnt/data/provenance.txt")
-    with open("/mnt/data/best_design.json", "w") as f:
+    export_svg_rod(best_graph, "./data/rod.svg")
+    prov.dump("./data/provenance.txt")
+    with open("./data/best_design.json", "w") as f:
         json.dump(best_graph.to_json(), f, indent=2)
 
     print("Best metrics:", best_metrics)
-    print("Files: /mnt/data/rod.svg, /mnt/data/provenance.txt, /mnt/data/best_design.json")
+    print("Files: ./data/rod.svg, ./data/provenance.txt, ./data/best_design.json")
 
