@@ -1,0 +1,810 @@
+Step 1: init
+{
+  "length": 1.0,
+  "stress": 12.5,
+  "weight": 0.8,
+  "segments": 1,
+  "feasible": false,
+  "cost": 1007.0999999999999
+}
+
+Step 2: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 6.25,
+  "weight": 1.52,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.745
+}
+
+Step 3: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 2.8,
+  "stress": 4.166666666666666,
+  "weight": 2.24,
+  "segments": 3,
+  "feasible": false,
+  "cost": 1004.4733333333334
+}
+
+Step 4: IncreaseThickness(seg2,+0.35)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.1500000000000004,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4239130434783
+}
+
+Step 5: IncreaseThickness(seg2,+0.35)
+{
+  "length": 1.9,
+  "stress": 3.773584905660377,
+  "weight": 2.465,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4517924528302
+}
+
+Step 6: IncreaseThickness(seg3,+0.35)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.1500000000000004,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4239130434783
+}
+
+Step 7: IncreaseThickness(seg3,+0.35)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.1849999999999996,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4589130434782
+}
+
+Step 8: IncreaseThickness(seg3,+0.35)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.1849999999999996,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4589130434782
+}
+
+Step 9: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 10: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 11: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 12: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 13: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 14: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 15: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 16: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 17: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 18: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 19: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 20: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 21: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 22: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 23: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 24: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 25: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 26: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 27: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 28: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 29: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 30: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 31: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 32: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 33: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 34: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 35: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 36: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 37: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 38: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 39: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 40: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 41: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 42: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 43: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 44: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 45: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 46: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 47: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 48: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 49: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 50: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 51: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 52: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 53: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 54: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 55: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 56: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 57: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 58: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 59: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 60: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 61: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 62: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 63: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 64: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 65: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 66: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 67: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 68: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 69: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 70: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 71: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 72: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 73: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 74: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 75: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 76: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 77: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 78: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 79: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 80: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+
+Step 81: AddSegment(0.90,0.80,aluminum)
+{
+  "length": 1.9,
+  "stress": 4.347826086956522,
+  "weight": 2.22,
+  "segments": 2,
+  "feasible": false,
+  "cost": 1004.4939130434783
+}
+

@@ -1,0 +1,8 @@
+=== Baseline rule stats (provenance mining) ===
+AddSegment: count=4995, mean_delta=0.001, pos_rate=0.00, total_delta=2.592
+IncreaseThickness: count=5, mean_delta=0.003, pos_rate=0.40, total_delta=0.014
+init: count=1, mean_delta=0.000, pos_rate=0.00, total_delta=0.000
+
+=== Metrics ===
+Baseline best (strict ep0): {'length': 1.9, 'stress': 4.347826086956522, 'weight': 2.1500000000000004, 'segments': 2, 'feasible': False, 'cost': 1004.4239130434783}
+Expanded best (slightly eased ep1): {'length': 1.9, 'stress': 3.91304347826087, 'weight': 2.1500000000000004, 'segments': 2, 'feasible': False, 'cost': 1004.2065217391304}

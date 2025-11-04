@@ -1,0 +1,7 @@
+=== Provenance-Driven Guard Selection ===
+Derived guard max_len from baseline provenance: None
+Accepted into rule-graph: False
+
+=== Golden Set Aggregates ===
+Before: {'feasible_count': 0, 'avg_cost': 1004.4612959788659, 'n': 4}
+After:  {'feasible_count': 0, 'avg_cost': 1004.4612959788659, 'n': 4}

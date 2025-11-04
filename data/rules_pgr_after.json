@@ -1,0 +1,194 @@
+{
+  "nodes": {
+    "ruleset": {
+      "type": "RuleSet",
+      "props": {
+        "name": "default"
+      }
+    },
+    "R1": {
+      "type": "Rule",
+      "props": {
+        "name": "AddSegment",
+        "kind": "AddSegment"
+      }
+    },
+    "R1.length": {
+      "type": "Param",
+      "props": {
+        "key": "length",
+        "value": 0.9
+      }
+    },
+    "R1.thickness": {
+      "type": "Param",
+      "props": {
+        "key": "thickness",
+        "value": 0.8
+      }
+    },
+    "R1.material": {
+      "type": "Param",
+      "props": {
+        "key": "material",
+        "value": "aluminum"
+      }
+    },
+    "R2": {
+      "type": "Rule",
+      "props": {
+        "name": "IncreaseLength",
+        "kind": "IncreaseLength"
+      }
+    },
+    "R2.delta": {
+      "type": "Param",
+      "props": {
+        "key": "delta",
+        "value": 0.7
+      }
+    },
+    "R2.x": {
+      "type": "PatternVar",
+      "props": {
+        "var": "x",
+        "type": "Segment"
+      }
+    },
+    "R3": {
+      "type": "Rule",
+      "props": {
+        "name": "IncreaseThickness",
+        "kind": "IncreaseThickness"
+      }
+    },
+    "R3.delta": {
+      "type": "Param",
+      "props": {
+        "key": "delta",
+        "value": 0.35
+      }
+    },
+    "R3.x": {
+      "type": "PatternVar",
+      "props": {
+        "var": "x",
+        "type": "Segment"
+      }
+    },
+    "R4": {
+      "type": "Rule",
+      "props": {
+        "name": "SwapMaterial",
+        "kind": "SwapMaterial"
+      }
+    },
+    "R4.x": {
+      "type": "PatternVar",
+      "props": {
+        "var": "x",
+        "type": "Segment"
+      }
+    },
+    "R5": {
+      "type": "Rule",
+      "props": {
+        "name": "RemoveShortest",
+        "kind": "RemoveShortest"
+      }
+    },
+    "R5.min": {
+      "type": "Param",
+      "props": {
+        "key": "min_keep",
+        "value": 1
+      }
+    },
+    "R2.guard.lenlt": {
+      "type": "Guard",
+      "props": {
+        "var": "x",
+        "op": "<",
+        "key": "length",
+        "value": 1.2
+      }
+    }
+  },
+  "edges": [
+    [
+      "R1",
+      "has_param",
+      "R1.length"
+    ],
+    [
+      "R1",
+      "has_param",
+      "R1.thickness"
+    ],
+    [
+      "R1",
+      "has_param",
+      "R1.material"
+    ],
+    [
+      "ruleset",
+      "has_rule",
+      "R1"
+    ],
+    [
+      "R2",
+      "has_param",
+      "R2.delta"
+    ],
+    [
+      "R2",
+      "has_var",
+      "R2.x"
+    ],
+    [
+      "ruleset",
+      "has_rule",
+      "R2"
+    ],
+    [
+      "R3",
+      "has_param",
+      "R3.delta"
+    ],
+    [
+      "R3",
+      "has_var",
+      "R3.x"
+    ],
+    [
+      "ruleset",
+      "has_rule",
+      "R3"
+    ],
+    [
+      "R4",
+      "has_var",
+      "R4.x"
+    ],
+    [
+      "ruleset",
+      "has_rule",
+      "R4"
+    ],
+    [
+      "R5",
+      "has_param",
+      "R5.min"
+    ],
+    [
+      "ruleset",
+      "has_rule",
+      "R5"
+    ],
+    [
+      "R2",
+      "has_guard",
+      "R2.guard.lenlt"
+    ]
+  ]
+}

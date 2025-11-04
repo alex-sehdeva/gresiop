@@ -1,0 +1,34 @@
+[
+  {
+    "length": 1.9,
+    "stress": 4.347826086956522,
+    "weight": 2.1500000000000004,
+    "segments": 2,
+    "feasible": false,
+    "cost": 1004.4239130434783
+  },
+  {
+    "length": 2.1,
+    "stress": 4.090909090909091,
+    "weight": 2.19,
+    "segments": 2,
+    "feasible": false,
+    "cost": 1004.3354545454546
+  },
+  {
+    "length": 1.7000000000000002,
+    "stress": 4.0,
+    "weight": 2.2800000000000002,
+    "segments": 2,
+    "feasible": false,
+    "cost": 1004.38
+  },
+  {
+    "length": 2.4,
+    "stress": 4.081632653061225,
+    "weight": 2.565,
+    "segments": 2,
+    "feasible": false,
+    "cost": 1004.7058163265307
+  }
+]

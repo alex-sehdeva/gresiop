@@ -1,0 +1,6 @@
+=== Pattern/Guard specialization ===
+IncreaseLength now guarded: apply only when x.length < 1.2 (changed=True)
+
+=== Metrics ===
+Before: {'length': 1.9, 'stress': 4.347826086956522, 'weight': 2.1500000000000004, 'segments': 2, 'feasible': False, 'cost': 1004.4239130434783}
+After:  {'length': 1.9, 'stress': 4.347826086956522, 'weight': 2.1500000000000004, 'segments': 2, 'feasible': False, 'cost': 1004.4239130434783}
