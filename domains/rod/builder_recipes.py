@@ -7,6 +7,8 @@ from kernel import Graph
 from builder_core import GuardEditSpec, GoldenSuiteFn, ProvenanceMiner
 from domains.rod.eval_rod import RodParams
 
+from miners import mine_prev_value
+
 # --- Guard spec: only increase length when x.length < max_len ---
 ROD_LEN_GUARD = GuardEditSpec(
     rule_name="IncreaseLength",
@@ -17,7 +19,10 @@ ROD_LEN_GUARD = GuardEditSpec(
 )
 
 # --- Provenance miner: look for IncreaseLength(...) steps that improved cost and extract prevL ---
-def rod_prevL_miner(steps: List[Dict[str, Any]]) -> List[float]:
+def rod_prevL_miner(steps):  # keep signature intact
+    return mine_prev_value(steps, rule_name="IncreaseLength", prev_key="prevL", require_improvement=True)
+
+def rod_prevL_miner_obsolete(steps: List[Dict[str, Any]]) -> List[float]:
     out: List[float] = []
     prev_cost = None
     for s in steps:

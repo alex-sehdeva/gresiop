@@ -61,6 +61,8 @@ def main(outdir: str = "artifacts/rod"):
         miner=rod_prevL_miner,
         guard_spec=ROD_LEN_GUARD,
         reducer="median",
+        domain="rod",
+        ruleset_name="rod-default",
     )
 
 if __name__ == "__main__":

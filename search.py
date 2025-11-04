@@ -12,17 +12,18 @@ from kernel import Graph, RuleFn, RuleResult, EvalParams, Evaluator, Metrics
 @dataclass
 class Provenance:
     steps: List[Dict[str, Any]] = field(default_factory=list)
+    prev_cost: float | None = None
 
     def log(self, desc: str, metrics: Metrics) -> None:
-        # Store a JSONable dict (avoid dataclass objects directly)
+        cost = metrics.cost
+        delta = (None if self.prev_cost is None else self.prev_cost - cost)
         self.steps.append({
             "rule": desc,
-            "metrics": {
-                "cost": metrics.cost,
-                "feasible": metrics.feasible,
-                "extras": dict(metrics.extras or {})
-            }
+            "metrics": {"cost": cost, "feasible": metrics.feasible, "extras": dict(metrics.extras or {})},
+            "delta_cost": delta,
+            "kind": (desc.split("(")[0] if "(" in desc else None),
         })
+        self.prev_cost = cost
 
     def dump(self, path: str) -> None:
         with open(path, "w") as f:

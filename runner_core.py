@@ -9,6 +9,8 @@ from compiler import compile_rules_from_pgr, CompileContext
 from search import search, SearchConfig
 from builder_core import propose_and_eval_guard
 
+from registry import append_provenance_jsonl
+
 # Hook types
 RulesInstaller   = Callable[[], Graph]               # seeds a rule-graph
 Exporter         = Callable[[Graph, str], None]      # writes a visualization/file
@@ -36,6 +38,10 @@ def run_all(
     miner,                                  # provenance miner -> List[float]
     guard_spec,                             # GuardEditSpec
     reducer: str = "median",
+    *,
+    domain: str = "generic",
+    ruleset_name: Optional[str] = None,
+    telemetry: bool = True,
 ):
     os.makedirs(outdir, exist_ok=True)
 
@@ -54,6 +60,17 @@ def run_all(
         json.dump({"cost": best_m.cost, "feasible": best_m.feasible, "extras": best_m.extras}, f, indent=2)
     if exporter:
         exporter(best_g, os.path.join(outdir, "artifact_before.svg"))
+
+    # 2a) telemetry
+    best_g, best_m, prov = search(g0, rules, evaluator, ep0, search_cfg)
+    if telemetry:
+        from registry import append_provenance_jsonl
+        append_provenance_jsonl(
+            outdir,
+            domain=domain,
+            ruleset_name=ruleset_name or getattr(rules_installer, "__name__", "unknown"),
+            steps=prov.steps,
+        )
 
     # 3) Meta: propose guard from provenance and A/B on golden suite
     threshold, accepted, prov_used, agg_before, agg_after = propose_and_eval_guard(

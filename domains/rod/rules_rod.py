@@ -3,10 +3,31 @@ from kernel import Graph
 from rules_pgr_base import (
     add_ruleset, add_rule, add_param, add_var, add_guard
 )
+from domins.rod.adapter inport t, p
 
 def install_rules_rod() -> Graph:
     rg = Graph()
     add_ruleset(rg, "ruleset", name="rod-default")
+
+    # Example: generic IncProp instead of custom IncreaseThickness
+    r_std = add_rule(rg, "R_std_incT", name="IncT_std", kind="IncProp") # IncProp from std library
+    add_var  (rg, r_std, "x", "Segment")
+    add_param(rg, r_std, "var",   "x")
+    add_param(rg, r_std, "key",   "thickness")
+    add_param(rg, r_std, "delta", 0.25)
+
+    # IncreaseLength (pattern var x:Segment; guards can be added later)
+    r2 = add_rule(rg, "R2", name="IncreaseLength", kind="IncreaseLength")
+    add_param(rg, r2, "delta", 0.7)
+    add_var  (rg, r2, "x", "Segment")
+    # (guard added later by meta; e.g., length < some_max)
+
+    # using t and p above
+    r = add_rule(rg, "Rv1", name="IncLengthStdVocab", kind="IncProp")
+    add_var  (rg, r, "x", t("beam"))
+    add_param(rg, r, "var", "x")
+    add_param(rg, r, "key", p("length"))
+    add_param(rg, r, "delta", 0.6)
 
     # AddSegment (template)
     r1 = add_rule(rg, "R1", name="AddSegment", kind="AddSegment")
@@ -19,12 +40,6 @@ def install_rules_rod() -> Graph:
     add_param(rg, r1b, "length",   1.6)
     add_param(rg, r1b, "thickness",0.9)
     add_param(rg, r1b, "material", "aluminum")
-
-    # IncreaseLength (pattern var x:Segment; guards can be added later)
-    r2 = add_rule(rg, "R2", name="IncreaseLength", kind="IncreaseLength")
-    add_param(rg, r2, "delta", 0.7)
-    add_var  (rg, r2, "x", "Segment")
-    # (guard added later by meta; e.g., length < some_max)
 
     # IncreaseThickness
     r3 = add_rule(rg, "R3", name="IncreaseThickness", kind="IncreaseThickness")

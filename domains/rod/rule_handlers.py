@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Dict, Any, List, Callable
 from kernel import Graph, RuleResult, RuleFn
+from rule_handlers_std import REGISTRY_STD as STD
 
 # Optional: material constants can live in the rod domain, not kernel
 STRENGTH = {"aluminum": 1.0, "steel": 2.2}
@@ -162,5 +163,7 @@ REGISTRY = {
     "AdaptiveFix":      handle_AdaptiveFix,
     "SwapMaterial":     handle_SwapMaterial,
     "RemoveShortest":   handle_RemoveShortest,
+    # std kinds (reusable across domains):
+    **STD,
 }
 
