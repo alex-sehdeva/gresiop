@@ -1,0 +1,276 @@
+{
+  "nodes": {
+    "ruleset": {
+      "type": "RuleSet",
+      "props": {
+        "name": "rod-default"
+      }
+    },
+    "R1": {
+      "type": "Rule",
+      "props": {
+        "name": "AddSegment",
+        "kind": "AddSegment"
+      }
+    },
+    "R1.param.length": {
+      "type": "Param",
+      "props": {
+        "key": "length",
+        "value": 0.9
+      }
+    },
+    "R1.param.thickness": {
+      "type": "Param",
+      "props": {
+        "key": "thickness",
+        "value": 0.8
+      }
+    },
+    "R1.param.material": {
+      "type": "Param",
+      "props": {
+        "key": "material",
+        "value": "aluminum"
+      }
+    },
+    "R1b": {
+      "type": "Rule",
+      "props": {
+        "name": "AddBigSegment",
+        "kind": "AddSegment"
+      }
+    },
+    "R1b.param.length": {
+      "type": "Param",
+      "props": {
+        "key": "length",
+        "value": 1.6
+      }
+    },
+    "R1b.param.thickness": {
+      "type": "Param",
+      "props": {
+        "key": "thickness",
+        "value": 0.9
+      }
+    },
+    "R1b.param.material": {
+      "type": "Param",
+      "props": {
+        "key": "material",
+        "value": "aluminum"
+      }
+    },
+    "R2": {
+      "type": "Rule",
+      "props": {
+        "name": "IncreaseLength",
+        "kind": "IncreaseLength"
+      }
+    },
+    "R2.param.delta": {
+      "type": "Param",
+      "props": {
+        "key": "delta",
+        "value": 0.7
+      }
+    },
+    "R2.var.x": {
+      "type": "PatternVar",
+      "props": {
+        "var": "x",
+        "type": "Segment"
+      }
+    },
+    "R3": {
+      "type": "Rule",
+      "props": {
+        "name": "IncreaseThickness",
+        "kind": "IncreaseThickness"
+      }
+    },
+    "R3.param.delta": {
+      "type": "Param",
+      "props": {
+        "key": "delta",
+        "value": 0.35
+      }
+    },
+    "R3.var.x": {
+      "type": "PatternVar",
+      "props": {
+        "var": "x",
+        "type": "Segment"
+      }
+    },
+    "R6": {
+      "type": "Rule",
+      "props": {
+        "name": "AdaptiveFix",
+        "kind": "AdaptiveFix"
+      }
+    },
+    "R6.var.x": {
+      "type": "PatternVar",
+      "props": {
+        "var": "x",
+        "type": "Segment"
+      }
+    },
+    "R6.param.alpha_len": {
+      "type": "Param",
+      "props": {
+        "key": "alpha_len",
+        "value": 0.5
+      }
+    },
+    "R6.param.alpha_str": {
+      "type": "Param",
+      "props": {
+        "key": "alpha_str",
+        "value": 0.6
+      }
+    },
+    "R4": {
+      "type": "Rule",
+      "props": {
+        "name": "SwapMaterial",
+        "kind": "SwapMaterial"
+      }
+    },
+    "R4.var.x": {
+      "type": "PatternVar",
+      "props": {
+        "var": "x",
+        "type": "Segment"
+      }
+    },
+    "R5": {
+      "type": "Rule",
+      "props": {
+        "name": "RemoveShortest",
+        "kind": "RemoveShortest"
+      }
+    },
+    "R5.param.min_keep": {
+      "type": "Param",
+      "props": {
+        "key": "min_keep",
+        "value": 1
+      }
+    }
+  },
+  "edges": [
+    [
+      "ruleset",
+      "has_rule",
+      "R1"
+    ],
+    [
+      "R1",
+      "has_param",
+      "R1.param.length"
+    ],
+    [
+      "R1",
+      "has_param",
+      "R1.param.thickness"
+    ],
+    [
+      "R1",
+      "has_param",
+      "R1.param.material"
+    ],
+    [
+      "ruleset",
+      "has_rule",
+      "R1b"
+    ],
+    [
+      "R1b",
+      "has_param",
+      "R1b.param.length"
+    ],
+    [
+      "R1b",
+      "has_param",
+      "R1b.param.thickness"
+    ],
+    [
+      "R1b",
+      "has_param",
+      "R1b.param.material"
+    ],
+    [
+      "ruleset",
+      "has_rule",
+      "R2"
+    ],
+    [
+      "R2",
+      "has_param",
+      "R2.param.delta"
+    ],
+    [
+      "R2",
+      "has_var",
+      "R2.var.x"
+    ],
+    [
+      "ruleset",
+      "has_rule",
+      "R3"
+    ],
+    [
+      "R3",
+      "has_param",
+      "R3.param.delta"
+    ],
+    [
+      "R3",
+      "has_var",
+      "R3.var.x"
+    ],
+    [
+      "ruleset",
+      "has_rule",
+      "R6"
+    ],
+    [
+      "R6",
+      "has_var",
+      "R6.var.x"
+    ],
+    [
+      "R6",
+      "has_param",
+      "R6.param.alpha_len"
+    ],
+    [
+      "R6",
+      "has_param",
+      "R6.param.alpha_str"
+    ],
+    [
+      "ruleset",
+      "has_rule",
+      "R4"
+    ],
+    [
+      "R4",
+      "has_var",
+      "R4.var.x"
+    ],
+    [
+      "ruleset",
+      "has_rule",
+      "R5"
+    ],
+    [
+      "R5",
+      "has_param",
+      "R5.param.min_keep"
+    ]
+  ]
+}
