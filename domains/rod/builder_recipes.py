@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import List, Dict, Any, Tuple
 from dataclasses import dataclass
 
-from kernel import Graph, EvalParams
+from kernel import Graph
 from builder_core import GuardEditSpec, GoldenSuiteFn, ProvenanceMiner
+from domains.rod.eval_rod import RodParams
 
 # --- Guard spec: only increase length when x.length < max_len ---
 ROD_LEN_GUARD = GuardEditSpec(
@@ -38,15 +39,16 @@ def rod_prevL_miner(steps: List[Dict[str, Any]]) -> List[float]:
 
 # --- Golden suite for rods (tiny factory) ---
 def make_initial_rod(len1=1.0, th1=0.8, mat1="aluminum") -> Graph:
-    g=Graph(); g.add_node("rod","Assembly",name="rod-1")
-    g.add_node("seg1","Segment",length=float(len1),thickness=float(th1),material=mat1); g.add_edge("rod","has","seg1")
+    g = Graph()
+    g.add_node("rod","Assembly",name="rod-1")
+    g.add_node("seg1","Segment",length=float(len1),thickness=float(th1),material=mat1)
+    g.add_edge("rod","has","seg1")
     return g
 
-def golden_suite_rod() -> List[Tuple[Graph, EvalParams]]:
-    # Note: if your EvalParams is a RodParams subclass, import it and use that here.
+def golden_suite_rod() -> List[Tuple[Graph, RodParams]]:
     return [
-        (make_initial_rod(1.0,0.8,"aluminum"), EvalParams(extras={"load":10.0})),
-        (make_initial_rod(1.2,0.7,"aluminum"), EvalParams(extras={"load":9.0})),
-        (make_initial_rod(0.8,0.9,"steel"),    EvalParams(extras={"load":11.0})),
-        (make_initial_rod(1.5,0.6,"aluminum"), EvalParams(extras={"load":10.0})),
+        (make_initial_rod(1.0, 0.8, "aluminum"), RodParams(extras={"load":10.0})),
+        (make_initial_rod(1.2, 0.7, "aluminum"), RodParams(extras={"load": 9.0})),
+        (make_initial_rod(0.8, 0.9, "steel"),    RodParams(extras={"load":11.0})),
+        (make_initial_rod(1.5, 0.6, "aluminum"), RodParams(extras={"load":10.0})),
     ]
